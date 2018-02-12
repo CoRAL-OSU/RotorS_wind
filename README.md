@@ -1,6 +1,8 @@
 RotorS
 ===============
 
+[![Build Status](https://travis-ci.org/gsilano/rotors_simulator.svg?branch=master)](https://travis-ci.org/gsilano/rotors_simulator)
+
 RotorS is a MAV gazebo simulator.
 It provides some multirotor models such as the [AscTec Hummingbird](http://www.asctec.de/en/uav-uas-drone-products/asctec-hummingbird/), the [AscTec Pelican](http://www.asctec.de/en/uav-uas-drone-products/asctec-pelican/), or the [AscTec Firefly](http://www.asctec.de/en/uav-uas-drone-products/asctec-firefly/), but the simulator is not limited for the use with these multicopters.
 
