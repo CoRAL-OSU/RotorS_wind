@@ -5,5 +5,5 @@
 # add all repositories from an existing workspace, you can use `wstool scrape`.
 
 - git: {local-name: rotors_simulator, uri: 'https://github.com/gsilano/rotors_simulator.git'}
-sudo apt-get install ros-indigo-desktop-full ros-indigo-joy ros-indigo-octomap-ros python-wstool python-catkin-tools protobuf-compiler libgoogle-glog-dev
-sudo apt-get install ros-indigo-mavros
+- git: {local-nale: mav_comm, uri: 'https://github.com/ethz-asl/mav_comm.git'}
+- wstool update
