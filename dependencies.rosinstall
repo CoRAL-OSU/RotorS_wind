@@ -4,9 +4,4 @@
 # The 'wstool' utility is the preferred way of adding elements to this file. To
 # add all repositories from an existing workspace, you can use `wstool scrape`.
 
-- git: {local-name: asctec_mav_framework, uri: 'https://github.com/ethz-asl/asctec_mav_framework.git'}
-- git: {local-name: ethzasl_msf, uri: 'https://github.com/ethz-asl/ethzasl_msf.git'}
-- git: {local-name: mav_comm, uri: 'https://github.com/ethz-asl/mav_comm.git'}
-- git: {local-name: bullet, uri: 'https://github.com/kripken/bullet.git'}
 - git: {local-name: rotors_simulator, uri: 'https://github.com/gsilano/rotors_simulator.git'}
-- git: {local-name: rotors_simulator_demos, uri: 'https://github.com/ethz-asl/rotors_simulator_demos.git'}
