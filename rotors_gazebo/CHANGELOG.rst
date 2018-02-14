@@ -2,14 +2,6 @@
 Changelog for package rotors_gazebo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.2.0 (2018-02-02)
------------
-* added the Crazyflie 2.0 hovering example launch file
-* added the Crazyflie 2.0 parameter and controller yaml files
-* added the Quaternion to RPY node (XYZ conversion and not ZYX)
-* added dependencies to bullet library. For more details see http://cs.gettysburg.edu/~cpresser/cs391/software/bullet_install_linux.html
-* Contributors: Giuseppe Silano, Emanuele Aucone, Benjamin Rodriguez, Luigi Iannelli
-
 2.1.1 (2017-04-27)
 -----------
 * update maintainers

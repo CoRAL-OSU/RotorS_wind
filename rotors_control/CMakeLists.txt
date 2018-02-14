@@ -12,18 +12,11 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
 )
 
-FIND_LIBRARY (BTQUATERNION_LIBRARY btQuaternion /usr/local/btQuaternion/lib/)
-
-find_package(
-  Eigen REQUIRED
-  PkgConfig REQUIRED
-)
-
-pkg_check_modules (bullet REQUIRED bullet)
+find_package(Eigen REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include ${Eigen_INCLUDE_DIRS}
-  LIBRARIES lee_position_controller position_controller roll_pitch_yawrate_thrust_controller
+  LIBRARIES lee_position_controller roll_pitch_yawrate_thrust_controller
   CATKIN_DEPENDS geometry_msgs mav_msgs nav_msgs roscpp sensor_msgs
   DEPENDS Eigen
 )
@@ -38,19 +31,12 @@ add_library(lee_position_controller
   src/library/lee_position_controller.cpp
 )
 
-add_library(position_controller
-   src/library/position_controller.cpp
-)
-
 add_library(roll_pitch_yawrate_thrust_controller
   src/library/roll_pitch_yawrate_thrust_controller.cpp
 )
 
 target_link_libraries(lee_position_controller ${catkin_LIBRARIES})
 add_dependencies(lee_position_controller ${catkin_EXPORTED_TARGETS})
-
-target_link_libraries(position_controller ${catkin_LIBRARIES} ${BTQUATERNION_LIBRARIES})
-add_dependencies(position_controller ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(roll_pitch_yawrate_thrust_controller ${catkin_LIBRARIES})
 add_dependencies(roll_pitch_yawrate_thrust_controller ${catkin_EXPORTED_TARGETS})
@@ -60,22 +46,17 @@ add_dependencies(lee_position_controller_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(lee_position_controller_node
   lee_position_controller ${catkin_LIBRARIES})
 
-add_executable(position_controller_node src/nodes/position_controller_node.cpp)
-add_dependencies(position_controller_node ${catkin_EXPORTED_TARGETS})
-target_link_libraries(position_controller_node
-  position_controller ${catkin_LIBRARIES})
-
 add_executable(roll_pitch_yawrate_thrust_controller_node
   src/nodes/roll_pitch_yawrate_thrust_controller_node.cpp)
 add_dependencies(roll_pitch_yawrate_thrust_controller_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(roll_pitch_yawrate_thrust_controller_node
   roll_pitch_yawrate_thrust_controller ${catkin_LIBRARIES})
 
-install(TARGETS lee_position_controller position_controller roll_pitch_yawrate_thrust_controller
+install(TARGETS lee_position_controller roll_pitch_yawrate_thrust_controller
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
-install(TARGETS lee_position_controller_node position_controller roll_pitch_yawrate_thrust_controller_node
+install(TARGETS lee_position_controller_node roll_pitch_yawrate_thrust_controller_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
