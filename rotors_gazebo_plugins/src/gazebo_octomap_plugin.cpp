@@ -20,10 +20,9 @@
 
 #include "rotors_gazebo_plugins/gazebo_octomap_plugin.h"
 
-#include <octomap_msgs/conversions.h>
 #include <gazebo/common/Time.hh>
-#include <gazebo/common/CommonTypes.hh>
 #include <gazebo/math/Vector3.hh>
+#include <octomap_msgs/conversions.h>
 
 namespace gazebo {
 
@@ -34,24 +33,17 @@ OctomapFromGazeboWorld::~OctomapFromGazeboWorld() {
 
 void OctomapFromGazeboWorld::Load(physics::WorldPtr _parent,
                                   sdf::ElementPtr _sdf) {
-  if (kPrintOnPluginLoad) {
-    gzdbg << __FUNCTION__ << "() called." << std::endl;
-  }
-
   world_ = _parent;
 
   std::string service_name = "world/get_octomap";
   std::string octomap_pub_topic = "world/octomap";
-  getSdfParam<std::string>(_sdf, "octomapPubTopic", octomap_pub_topic,
-                           octomap_pub_topic);
-  getSdfParam<std::string>(_sdf, "octomapServiceName", service_name,
-                           service_name);
+  getSdfParam<std::string>(_sdf, "octomapPubTopic", octomap_pub_topic, octomap_pub_topic);
+  getSdfParam<std::string>(_sdf, "octomapServiceName", service_name, service_name);
 
   gzlog << "Advertising service: " << service_name << std::endl;
   srv_ = node_handle_.advertiseService(
       service_name, &OctomapFromGazeboWorld::ServiceCallback, this);
-  octomap_publisher_ =
-      node_handle_.advertise<octomap_msgs::Octomap>(octomap_pub_topic, 1, true);
+  octomap_publisher_ = node_handle_.advertise<octomap_msgs::Octomap>(octomap_pub_topic, 1, true);
 }
 
 bool OctomapFromGazeboWorld::ServiceCallback(
@@ -67,7 +59,8 @@ bool OctomapFromGazeboWorld::ServiceCallback(
     if (octomap_) {
       std::string path = req.filename;
       octomap_->writeBinary(path);
-      gzlog << std::endl << "Octree saved as " << path << std::endl;
+      gzlog << std::endl
+                << "Octree saved as " << path << std::endl;
     } else {
       ROS_ERROR("The octree is NULL. Will not save that.");
     }
@@ -84,27 +77,7 @@ bool OctomapFromGazeboWorld::ServiceCallback(
     gzlog << "Publishing Octomap." << std::endl;
     octomap_publisher_.publish(res.map);
   }
-
-  common::SphericalCoordinatesPtr sphericalCoordinates = world_->GetSphericalCoordinates();
-#if GAZEBO_MAJOR_VERSION >= 6
-  ignition::math::Vector3d origin_cartesian(0.0, 0.0, 0.0);
-  ignition::math::Vector3d origin_spherical = sphericalCoordinates->
-      SphericalFromLocal(origin_cartesian);
-
-  res.origin_latitude = origin_spherical.X();
-  res.origin_longitude = origin_spherical.Y();
-  res.origin_altitude = origin_spherical.Z();
   return true;
-#else
-  math::Vector3 origin_cartesian(0.0, 0.0, 0.0);
-  math::Vector3 origin_spherical = sphericalCoordinates->
-         SphericalFromLocal(origin_cartesian);
-
-  res.origin_latitude = origin_spherical.x;
-  res.origin_longitude = origin_spherical.y;
-  res.origin_altitude = origin_spherical.z;
-  return true;
-#endif
 }
 
 void OctomapFromGazeboWorld::FloodFill(
@@ -283,5 +256,4 @@ void OctomapFromGazeboWorld::CreateOctomap(
 
 // Register this plugin with the simulator
 GZ_REGISTER_WORLD_PLUGIN(OctomapFromGazeboWorld)
-
-}  // namespace gazebo
+}

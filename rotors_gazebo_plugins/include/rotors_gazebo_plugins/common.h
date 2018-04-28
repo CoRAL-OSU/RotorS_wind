@@ -4,7 +4,6 @@
  * Copyright 2015 Mina Kamel, ASL, ETH Zurich, Switzerland
  * Copyright 2015 Janosch Nikolic, ASL, ETH Zurich, Switzerland
  * Copyright 2015 Markus Achtelik, ASL, ETH Zurich, Switzerland
- * Copyright 2016 Geoffrey Hunter <gbmhunter@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,48 +23,22 @@
 
 #include <Eigen/Dense>
 #include <gazebo/gazebo.hh>
+#include <mav_msgs/default_topics.h>
 
 namespace gazebo {
-
-//===============================================================================================//
-//========================================= DEBUGGING ===========================================//
-//===============================================================================================//
-
-/// \addtogroup Debug Print Switches
-/// @{
-
-// The following boolean constants enable/disable debug printing when certain plugin methods are called.
-// Suitable for debugging purposes. Left on permanently can swamp std::out and can crash Gazebo.
-
-static const bool kPrintOnPluginLoad    = false;
-static const bool kPrintOnUpdates       = false;
-static const bool kPrintOnMsgCallback   = false;
-
-/// @}
 
 // Default values
 static const std::string kDefaultNamespace = "";
 static constexpr double kDefaultRotorVelocitySlowdownSim = 10.0;
 
-//===============================================================================================//
-//================================== TOPICS FOR ROS INTERFACE ===================================//
-//===============================================================================================//
-
-// These should perhaps be defined in an .sdf/.xacro file instead?
-static const std::string kConnectGazeboToRosSubtopic = "connect_gazebo_to_ros_subtopic";
-static const std::string kConnectRosToGazeboSubtopic = "connect_ros_to_gazebo_subtopic";
-
-/// \brief    Special-case topic for ROS interface plugin to listen to (if present)
-///           and broadcast transforms to the ROS system.
-static const std::string kBroadcastTransformSubtopic = "broadcast_transform";
-
-
-/// \brief      Obtains a parameter from sdf.
-/// \param[in]  sdf           Pointer to the sdf object.
-/// \param[in]  name          Name of the parameter.
-/// \param[out] param         Param Variable to write the parameter to.
-/// \param[in]  default_value Default value, if the parameter not available.
-/// \param[in]  verbose       If true, gzerror if the parameter is not available.
+/**
+ * \brief Obtains a parameter from sdf.
+ * \param[in] sdf Pointer to the sdf object.
+ * \param[in] name Name of the parameter.
+ * \param[out] param Param Variable to write the parameter to.
+ * \param[in] default_value Default value, if the parameter not available.
+ * \param[in] verbose If true, gzerror if the parameter is not available.
+ */
 template<class T>
 bool getSdfParam(sdf::ElementPtr sdf, const std::string& name, T& param, const T& default_value, const bool& verbose =
                      false) {
@@ -83,55 +56,57 @@ bool getSdfParam(sdf::ElementPtr sdf, const std::string& name, T& param, const T
 
 }
 
-/// \brief    This class can be used to apply a first order filter on a signal.
-///           It allows different acceleration and deceleration time constants.
-/// \details
-///           Short reveiw of discrete time implementation of first order system:
-///           Laplace:
-///             X(s)/U(s) = 1/(tau*s + 1)
-///           continous time system:
-///             dx(t) = (-1/tau)*x(t) + (1/tau)*u(t)
-///           discretized system (ZoH):
-///             x(k+1) = exp(samplingTime*(-1/tau))*x(k) + (1 - exp(samplingTime*(-1/tau))) * u(k)
 template <typename T>
 class FirstOrderFilter {
+/*
+This class can be used to apply a first order filter on a signal.
+It allows different acceleration and deceleration time constants.
 
- public:
-  FirstOrderFilter(double timeConstantUp, double timeConstantDown, T initialState):
+Short reveiw of discrete time implementation of first order system:
+Laplace:
+    X(s)/U(s) = 1/(tau*s + 1)
+continous time system:
+    dx(t) = (-1/tau)*x(t) + (1/tau)*u(t)
+discretized system (ZoH):
+    x(k+1) = exp(samplingTime*(-1/tau))*x(k) + (1 - exp(samplingTime*(-1/tau))) * u(k)
+*/
+
+  public:
+    FirstOrderFilter(double timeConstantUp, double timeConstantDown, T initialState):
       timeConstantUp_(timeConstantUp),
       timeConstantDown_(timeConstantDown),
       previousState_(initialState) {}
 
-  /// \brief    This method will apply a first order filter on the inputState.
-  T updateFilter(T inputState, double samplingTime) {
+    T updateFilter(T inputState, double samplingTime) {
+      /*
+      This method will apply a first order filter on the inputState.
+      */
+      T outputState;
+      if (inputState > previousState_) {
+        // Calcuate the outputState if accelerating.
+        double alphaUp = exp(-samplingTime / timeConstantUp_);
+        // x(k+1) = Ad*x(k) + Bd*u(k)
+        outputState = alphaUp * previousState_ + (1 - alphaUp) * inputState;
 
-    T outputState;
-    if (inputState > previousState_) {
-      // Calcuate the outputState if accelerating.
-      double alphaUp = exp(-samplingTime / timeConstantUp_);
-      // x(k+1) = Ad*x(k) + Bd*u(k)
-      outputState = alphaUp * previousState_ + (1 - alphaUp) * inputState;
+      }
+      else {
+        // Calculate the outputState if decelerating.
+        double alphaDown = exp(-samplingTime / timeConstantDown_);
+        outputState = alphaDown * previousState_ + (1 - alphaDown) * inputState;
+      }
+      previousState_ = outputState;
+      return outputState;
 
     }
-    else {
-      // Calculate the outputState if decelerating.
-      double alphaDown = exp(-samplingTime / timeConstantDown_);
-      outputState = alphaDown * previousState_ + (1 - alphaDown) * inputState;
-    }
-    previousState_ = outputState;
-    return outputState;
+    ~FirstOrderFilter() {}
 
-  }
-
-  ~FirstOrderFilter() {}
-
- protected:
-  double timeConstantUp_;
-  double timeConstantDown_;
-  T previousState_;
+  protected:
+    double timeConstantUp_;
+    double timeConstantDown_;
+    T previousState_;
 };
 
-/// \brief    Computes a quaternion from the 3-element small angle approximation theta.
+/// Computes a quaternion from the 3-element small angle approximation theta.
 template<class Derived>
 Eigen::Quaternion<typename Derived::Scalar> QuaternionFromSmallAngle(const Eigen::MatrixBase<Derived> & theta) {
   typedef typename Derived::Scalar Scalar;

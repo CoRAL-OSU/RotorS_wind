@@ -2,18 +2,6 @@
 Changelog for package rotors_evaluation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.1.1 (2017-04-27)
------------
-* update maintainers
-* Contributors: fmina
-
-2.1.0 (2017-04-08)
------------
-* switch url website in package.xml to github repo
-* add/change url and cleanup of package.xml files
-  This addresses `#202 <https://github.com/ethz-asl/rotors_simulator/issues/202>`_.
-* Contributors: Fadri Furrer
-
 2.0.1 (2015-08-10)
 ------------------
 * fixed the bag plugin and the evaluation
