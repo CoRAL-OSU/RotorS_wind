@@ -56,9 +56,8 @@ int main(int argc, char** argv){
     ROS_INFO("Unpaused the Gazebo simulation.");
   }
 
-  // Wait for t seconds to let the Gazebo GUI show up.
-  double t = 5;
-  ros::Duration(t).sleep();
+  // Wait for 5 seconds to let the Gazebo GUI show up.
+  ros::Duration(5.0).sleep();
 
   trajectory_msgs::MultiDOFJointTrajectory trajectory_msg;
   trajectory_msg.header.stamp = ros::Time::now();
