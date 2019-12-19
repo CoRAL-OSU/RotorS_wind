@@ -4,6 +4,14 @@ project(rotors_gazebo_plugins)
 set(MAVLINK_INTERFACE)
 set(BUILD_MAVLINK_INTERFACE)
 
+# Add any additional include directories as specified by the calling process (either user or another CMake file).
+# ASL: Doesn't use this, catkin manages the mav_comm dependency
+# PX4: Provides include directory for mav_msgs, so that "mav_msgs/default_topics.h" can be found and used.
+include_directories(${ADDITIONAL_INCLUDE_DIRS})
+
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+message(STATUS "CMAKE_BINARY_DIR = ${CMAKE_BINARY_DIR}")
+
 if (MAVLINK_INTERFACE STREQUAL "y")
   set(BUILD_MAVLINK_INTERFACE TRUE)
 else ()
@@ -24,7 +32,7 @@ add_definitions(
 add_definitions(-DROS_ASSERT_ENABLED)
 
 find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
+#  cmake_modules
   cv_bridge
   geometry_msgs
   mav_msgs
