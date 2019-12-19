@@ -20,9 +20,10 @@
 
 #include "rotors_gazebo_plugins/gazebo_octomap_plugin.h"
 
-#include <gazebo/common/Time.hh>
-#include <gazebo/math/Vector3.hh>
 #include <octomap_msgs/conversions.h>
+#include <gazebo/common/Time.hh>
+#include <gazebo/common/CommonTypes.hh>
+#include <gazebo/math/Vector3.hh>
 
 namespace gazebo {
 
@@ -33,17 +34,24 @@ OctomapFromGazeboWorld::~OctomapFromGazeboWorld() {
 
 void OctomapFromGazeboWorld::Load(physics::WorldPtr _parent,
                                   sdf::ElementPtr _sdf) {
+  if (kPrintOnPluginLoad) {
+    gzdbg << __FUNCTION__ << "() called." << std::endl;
+  }
+
   world_ = _parent;
 
   std::string service_name = "world/get_octomap";
   std::string octomap_pub_topic = "world/octomap";
-  getSdfParam<std::string>(_sdf, "octomapPubTopic", octomap_pub_topic, octomap_pub_topic);
-  getSdfParam<std::string>(_sdf, "octomapServiceName", service_name, service_name);
+  getSdfParam<std::string>(_sdf, "octomapPubTopic", octomap_pub_topic,
+                           octomap_pub_topic);
+  getSdfParam<std::string>(_sdf, "octomapServiceName", service_name,
+                           service_name);
 
   gzlog << "Advertising service: " << service_name << std::endl;
   srv_ = node_handle_.advertiseService(
       service_name, &OctomapFromGazeboWorld::ServiceCallback, this);
-  octomap_publisher_ = node_handle_.advertise<octomap_msgs::Octomap>(octomap_pub_topic, 1, true);
+  octomap_publisher_ =
+      node_handle_.advertise<octomap_msgs::Octomap>(octomap_pub_topic, 1, true);
 }
 
 bool OctomapFromGazeboWorld::ServiceCallback(
@@ -59,8 +67,7 @@ bool OctomapFromGazeboWorld::ServiceCallback(
     if (octomap_) {
       std::string path = req.filename;
       octomap_->writeBinary(path);
-      gzlog << std::endl
-                << "Octree saved as " << path << std::endl;
+      gzlog << std::endl << "Octree saved as " << path << std::endl;
     } else {
       ROS_ERROR("The octree is NULL. Will not save that.");
     }
@@ -77,22 +84,31 @@ bool OctomapFromGazeboWorld::ServiceCallback(
     gzlog << "Publishing Octomap." << std::endl;
     octomap_publisher_.publish(res.map);
   }
+
+  common::SphericalCoordinatesPtr sphericalCoordinates = world_->GetSphericalCoordinates();
+  ignition::ignition::math::Vector3d origin_cartesian(0.0, 0.0, 0.0);
+  ignition::ignition::math::Vector3d origin_spherical = sphericalCoordinates->
+      SphericalFromLocal(origin_cartesian);
+
+  res.origin_latitude = origin_spherical.X();
+  res.origin_longitude = origin_spherical.Y();
+  res.origin_altitude = origin_spherical.Z();
   return true;
 }
 
 void OctomapFromGazeboWorld::FloodFill(
-    const math::Vector3& seed_point, const math::Vector3& bounding_box_origin,
-    const math::Vector3& bounding_box_lengths, const double leaf_size) {
+    const ignition::math::Vector3d & seed_point, const ignition::math::Vector3d & bounding_box_origin,
+    const ignition::math::Vector3d & bounding_box_lengths, const double leaf_size) {
   octomap::OcTreeNode* seed =
       octomap_->search(seed_point.x, seed_point.y, seed_point.z);
   // do nothing if point occupied
   if (seed != NULL && seed->getOccupancy()) return;
 
-  std::stack<octomath::Vector3> to_check;
-  to_check.push(octomath::Vector3(seed_point.x, seed_point.y, seed_point.z));
+  std::stack<octoignition::math::Vector3d > to_check;
+  to_check.push(octoignition::math::Vector3d (seed_point.x, seed_point.y, seed_point.z));
 
   while (to_check.size() > 0) {
-    octomath::Vector3 p = to_check.top();
+    octoignition::math::Vector3d p = to_check.top();
 
     if ((p.x() > bounding_box_origin.x - bounding_box_lengths.x / 2) &&
         (p.x() < bounding_box_origin.x + bounding_box_lengths.x / 2) &&
@@ -103,12 +119,12 @@ void OctomapFromGazeboWorld::FloodFill(
         (!octomap_->search(p))) {
       octomap_->setNodeValue(p, 0);
       to_check.pop();
-      to_check.push(octomath::Vector3(p.x() + leaf_size, p.y(), p.z()));
-      to_check.push(octomath::Vector3(p.x() - leaf_size, p.y(), p.z()));
-      to_check.push(octomath::Vector3(p.x(), p.y() + leaf_size, p.z()));
-      to_check.push(octomath::Vector3(p.x(), p.y() - leaf_size, p.z()));
-      to_check.push(octomath::Vector3(p.x(), p.y(), p.z() + leaf_size));
-      to_check.push(octomath::Vector3(p.x(), p.y(), p.z() - leaf_size));
+      to_check.push(octoignition::math::Vector3d (p.x() + leaf_size, p.y(), p.z()));
+      to_check.push(octoignition::math::Vector3d (p.x() - leaf_size, p.y(), p.z()));
+      to_check.push(octoignition::math::Vector3d (p.x(), p.y() + leaf_size, p.z()));
+      to_check.push(octoignition::math::Vector3d (p.x(), p.y() - leaf_size, p.z()));
+      to_check.push(octoignition::math::Vector3d (p.x(), p.y(), p.z() + leaf_size));
+      to_check.push(octoignition::math::Vector3d (p.x(), p.y(), p.z() - leaf_size));
 
     } else {
       to_check.pop();
@@ -116,11 +132,11 @@ void OctomapFromGazeboWorld::FloodFill(
   }
 }
 
-bool OctomapFromGazeboWorld::CheckIfInterest(const math::Vector3& central_point,
+bool OctomapFromGazeboWorld::CheckIfInterest(const ignition::math::Vector3d & central_point,
                                              gazebo::physics::RayShapePtr ray,
                                              const double leaf_size) {
-  math::Vector3 start_point = central_point;
-  math::Vector3 end_point = central_point;
+  ignition::math::Vector3d start_point = central_point;
+  ignition::math::Vector3d end_point = central_point;
 
   double dist;
   std::string entity_name;
@@ -157,12 +173,12 @@ void OctomapFromGazeboWorld::CreateOctomap(
     const rotors_comm::Octomap::Request& msg) {
   const double epsilon = 0.00001;
   const int far_away = 100000;
-  math::Vector3 bounding_box_origin(msg.bounding_box_origin.x,
+  ignition::math::Vector3d bounding_box_origin(msg.bounding_box_origin.x,
                                     msg.bounding_box_origin.y,
                                     msg.bounding_box_origin.z);
   // epsilion prevents undefiened behaviour if a point is inserted exactly
   // between two octomap cells
-  math::Vector3 bounding_box_lengths(msg.bounding_box_lengths.x + epsilon,
+  ignition::math::Vector3d bounding_box_lengths(msg.bounding_box_lengths.x + epsilon,
                                      msg.bounding_box_lengths.y + epsilon,
                                      msg.bounding_box_lengths.z + epsilon);
   double leaf_size = msg.leaf_size;
@@ -174,7 +190,7 @@ void OctomapFromGazeboWorld::CreateOctomap(
   octomap_->setClampingThresMax(0.97);
   octomap_->setOccupancyThres(0.7);
 
-  gazebo::physics::PhysicsEnginePtr engine = world_->GetPhysicsEngine();
+  gazebo::physics::PhysicsEnginePtr engine = world_->PhysicsEngine();
   engine->InitForThread();
   gazebo::physics::RayShapePtr ray =
       boost::dynamic_pointer_cast<gazebo::physics::RayShape>(
@@ -199,7 +215,7 @@ void OctomapFromGazeboWorld::CreateOctomap(
                       bounding_box_lengths.z / 2;
            z < bounding_box_origin.z + bounding_box_lengths.z / 2;
            z += leaf_size) {
-        math::Vector3 point(x, y, z);
+        ignition::math::Vector3d point(x, y, z);
         if (CheckIfInterest(point, ray, leaf_size)) {
           octomap_->setNodeValue(x, y, z, 1);
         }
@@ -211,12 +227,12 @@ void OctomapFromGazeboWorld::CreateOctomap(
 
   // flood fill from top and bottom
   std::cout << "\rFlood filling freespace...                                  ";
-  FloodFill(math::Vector3(bounding_box_origin.x + leaf_size / 2,
+  FloodFill(ignition::math::Vector3d (bounding_box_origin.x + leaf_size / 2,
                           bounding_box_origin.y + leaf_size / 2,
                           bounding_box_origin.z + bounding_box_lengths.z / 2 -
                               leaf_size / 2),
             bounding_box_origin, bounding_box_lengths, leaf_size);
-  FloodFill(math::Vector3(bounding_box_origin.x + leaf_size / 2,
+  FloodFill(ignition::math::Vector3d (bounding_box_origin.x + leaf_size / 2,
                           bounding_box_origin.y + leaf_size / 2,
                           bounding_box_origin.z - bounding_box_lengths.z / 2 +
                               leaf_size / 2),
@@ -256,4 +272,5 @@ void OctomapFromGazeboWorld::CreateOctomap(
 
 // Register this plugin with the simulator
 GZ_REGISTER_WORLD_PLUGIN(OctomapFromGazeboWorld)
-}
+
+}  // namespace gazebo

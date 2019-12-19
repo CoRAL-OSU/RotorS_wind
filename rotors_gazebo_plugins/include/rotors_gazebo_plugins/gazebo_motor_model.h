@@ -22,33 +22,42 @@
 #ifndef ROTORS_GAZEBO_PLUGINS_MOTOR_MODELS_H
 #define ROTORS_GAZEBO_PLUGINS_MOTOR_MODELS_H
 
+// SYSTEM
 #include <stdio.h>
 
+// 3RD PARTY
 #include <boost/bind.hpp>
 #include <Eigen/Eigen>
+#include <Eigen/Core>
 #include <gazebo/common/common.hh>
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/gazebo.hh>
 #include <gazebo/physics/physics.hh>
-#include <mav_msgs/Actuators.h>
-#include <mav_msgs/default_topics.h>
-#include <ros/callback_queue.h>
-#include <ros/ros.h>
-#include <rotors_comm/WindSpeed.h>
-#include <std_msgs/Float32.h>
+#include <mav_msgs/default_topics.h>  // This comes from the mav_comm repo
 
+// USER
 #include "rotors_gazebo_plugins/common.h"
 #include "rotors_gazebo_plugins/motor_model.hpp"
+#include "Float32.pb.h"
+#include "CommandMotorSpeed.pb.h"
+#include "WindSpeed.pb.h"
 
 namespace turning_direction {
 const static int CCW = 1;
 const static int CW = -1;
-}
+} // namespace turning_direction
+
+enum class MotorType {
+  kVelocity,
+  kPosition,
+  kForce
+};
 
 namespace gazebo {
-// Default values
-static const std::string kDefaultCommandSubTopic = "gazebo/command/motor_speed";
-static const std::string kDefaultWindSpeedSubTopic = "gazebo/wind_speed";
+
+// Changed name from speed to input for more generality. TODO(kajabo): integrate general actuator command.
+typedef const boost::shared_ptr<const gz_mav_msgs::CommandMotorSpeed> GzCommandMotorInputMsgPtr;
+typedef const boost::shared_ptr<const gz_mav_msgs::WindSpeed> GzWindSpeedMsgPtr;
 
 // Set the max_force_ to the max double value. The limitations get handled by the FirstOrderFilter.
 static constexpr double kDefaultMaxForce = std::numeric_limits<double>::max();
@@ -61,27 +70,35 @@ static constexpr double kDefaultRotorDragCoefficient = 1.0e-4;
 static constexpr double kDefaultRollingMomentCoefficient = 1.0e-6;
 
 class GazeboMotorModel : public MotorModel, public ModelPlugin {
+
  public:
   GazeboMotorModel()
       : ModelPlugin(),
         MotorModel(),
-        command_sub_topic_(kDefaultCommandSubTopic),
-        wind_speed_sub_topic_(kDefaultWindSpeedSubTopic),
+        command_sub_topic_(mav_msgs::default_topics::COMMAND_ACTUATORS),
+        wind_speed_sub_topic_(mav_msgs::default_topics::WIND_SPEED),
         motor_speed_pub_topic_(mav_msgs::default_topics::MOTOR_MEASUREMENT),
+        motor_position_pub_topic_(mav_msgs::default_topics::MOTOR_POSITION_MEASUREMENT),
+        motor_force_pub_topic_(mav_msgs::default_topics::MOTOR_FORCE_MEASUREMENT),
+        publish_speed_(true),
+        publish_position_(false),
+        publish_force_(false),
         motor_number_(0),
         turning_direction_(turning_direction::CW),
+        motor_type_(MotorType::kVelocity),
         max_force_(kDefaultMaxForce),
         max_rot_velocity_(kDefaulMaxRotVelocity),
         moment_constant_(kDefaultMomentConstant),
         motor_constant_(kDefaultMotorConstant),
-        ref_motor_rot_vel_(0.0),
+        ref_motor_input_(0.0),
         rolling_moment_coefficient_(kDefaultRollingMomentCoefficient),
         rotor_drag_coefficient_(kDefaultRotorDragCoefficient),
         rotor_velocity_slowdown_sim_(kDefaultRotorVelocitySlowdownSim),
         time_constant_down_(kDefaultTimeConstantDown),
         time_constant_up_(kDefaultTimeConstantUp),
         node_handle_(nullptr),
-        wind_speed_W_(0, 0, 0) {}
+        wind_speed_W_(0, 0, 0),
+        pubs_and_subs_created_(false) {}
 
   virtual ~GazeboMotorModel();
 
@@ -94,47 +111,82 @@ class GazeboMotorModel : public MotorModel, public ModelPlugin {
   virtual void OnUpdate(const common::UpdateInfo & /*_info*/);
 
  private:
+
+  /// \brief    Flag that is set to true once CreatePubsAndSubs() is called, used
+  ///           to prevent CreatePubsAndSubs() from be called on every OnUpdate().
+  bool pubs_and_subs_created_;
+
+  /// \brief    Creates all required publishers and subscribers, incl. routing of messages to/from ROS if required.
+  /// \details  Call this once the first time OnUpdate() is called (can't
+  ///           be called from Load() because there is no guarantee GazeboRosInterfacePlugin has
+  ///           has loaded and listening to ConnectGazeboToRosTopic and ConnectRosToGazeboTopic messages).
+  void CreatePubsAndSubs();
+
   std::string command_sub_topic_;
   std::string wind_speed_sub_topic_;
   std::string joint_name_;
   std::string link_name_;
   std::string motor_speed_pub_topic_;
+  std::string motor_position_pub_topic_;
+  std::string motor_force_pub_topic_;
   std::string namespace_;
+
+  bool publish_speed_;
+  bool publish_position_;
+  bool publish_force_;
 
   int motor_number_;
   int turning_direction_;
+  MotorType motor_type_;
 
   double max_force_;
   double max_rot_velocity_;
   double moment_constant_;
   double motor_constant_;
-  double ref_motor_rot_vel_;
+  double ref_motor_input_;
   double rolling_moment_coefficient_;
   double rotor_drag_coefficient_;
   double rotor_velocity_slowdown_sim_;
   double time_constant_down_;
   double time_constant_up_;
 
-  ros::NodeHandle* node_handle_;
-  ros::Publisher motor_velocity_pub_;
-  ros::Subscriber command_sub_;
-  ros::Subscriber wind_speed_sub_;
+  common::PID pids_;
+
+  gazebo::transport::NodePtr node_handle_;
+
+  gazebo::transport::PublisherPtr motor_velocity_pub_;
+
+  gazebo::transport::PublisherPtr motor_position_pub_;
+
+  gazebo::transport::PublisherPtr motor_force_pub_;
+
+  gazebo::transport::SubscriberPtr command_sub_;
+
+  gazebo::transport::SubscriberPtr wind_speed_sub_;
 
   physics::ModelPtr model_;
   physics::JointPtr joint_;
   physics::LinkPtr link_;
+
   /// \brief Pointer to the update event connection.
   event::ConnectionPtr updateConnection_;
 
   boost::thread callback_queue_thread_;
+
   void QueueThread();
-  std_msgs::Float32 turning_velocity_msg_;
-  void VelocityCallback(const mav_msgs::ActuatorsConstPtr& rot_velocities);
-  void WindSpeedCallback(const rotors_comm::WindSpeedConstPtr& wind_speed);
+
+  gz_std_msgs::Float32 turning_velocity_msg_;
+  gz_std_msgs::Float32 position_msg_;
+  gz_std_msgs::Float32 force_msg_;
+
+  void ControlCommandCallback(GzCommandMotorInputMsgPtr& command_motor_input_msg);
+
+  void WindSpeedCallback(GzWindSpeedMsgPtr& wind_speed_msg);
 
   std::unique_ptr<FirstOrderFilter<double>> rotor_velocity_filter_;
-  math::Vector3 wind_speed_W_;
+  ignition::math::Vector3d wind_speed_W_;
 };
-}
+
+} // namespace gazebo {
 
 #endif // ROTORS_GAZEBO_PLUGINS_MOTOR_MODELS_H
