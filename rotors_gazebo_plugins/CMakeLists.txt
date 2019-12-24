@@ -204,6 +204,11 @@ PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${msgs})
 add_library(mav_msgs SHARED ${PROTO_SRCS})
 target_link_libraries(mav_msgs ${PROTOBUF_LIBRARY} gazebo_msgs)
 
+# This causes mav_msgs to be linked with every created library in this file from this 
+# point forward. 
+# NOTE: This is deprecated, should be using target_link_libraries instead 
+link_libraries(mav_msgs) 
+
 # To solve the issue #506 on RotorS repository
 # https://github.com/ethz-asl/rotors_simulator/pull/506
 list(APPEND targets_to_install mav_msgs)
@@ -375,7 +380,7 @@ endif()
 
 #==================================== MOTOR MODEL PLUGIN ========================================//
 
-add_library(rotors_gazebo_motor_model src/gazebo_motor_model.cpp)
+add_library(rotors_gazebo_motor_model SHARED src/gazebo_motor_model.cpp)
 target_link_libraries(rotors_gazebo_motor_model ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 if (NOT NO_ROS)
   add_dependencies(rotors_gazebo_motor_model ${catkin_EXPORTED_TARGETS})
@@ -503,6 +508,7 @@ else()
   set(BIN_DESTINATION ${CMAKE_BINARY_DIR})
   set(LIB_DESTINATION ${CMAKE_BINARY_DIR})
 endif()
+
 
 if (BUILD_MAVLINK_INTERFACE)
   install(
