@@ -59,6 +59,8 @@ static const ignition::math::Vector3d kDefaultWindGustDirection = ignition::math
 
 static constexpr bool kDefaultUseCustomStaticWindField = false;
 
+static const ignition::math::Matrix3d kDefaultDragCoefficient = ignition::math::Matrix3d (0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.01);
+
 
 
 /// \brief    This gazebo plugin simulates wind acting on a model.
@@ -80,6 +82,7 @@ class GazeboWindPlugin : public ModelPlugin {
         wind_direction_(kDefaultWindDirection),
         wind_gust_direction_(kDefaultWindGustDirection),
         use_custom_static_wind_field_(kDefaultUseCustomStaticWindField),
+        drag_coefficient_(kDefaultDragCoefficient),
         frame_id_(kDefaultFrameId),
         link_name_(kDefaultLinkName),
         node_handle_(nullptr),
@@ -134,6 +137,7 @@ class GazeboWindPlugin : public ModelPlugin {
   ignition::math::Vector3d xyz_offset_;
   ignition::math::Vector3d wind_direction_;
   ignition::math::Vector3d wind_gust_direction_;
+  ignition::math::Matrix3d drag_coefficient_;
 
   common::Time wind_gust_end_;
   common::Time wind_gust_start_;
@@ -152,43 +156,43 @@ class GazeboWindPlugin : public ModelPlugin {
   std::vector<float> u_;
   std::vector<float> v_;
   std::vector<float> w_;
-  
+
   /// \brief  Reads wind data from a text file and saves it.
   /// \param[in] custom_wind_field_path Path to the wind field from ~/.ros.
   void ReadCustomWindField(std::string& custom_wind_field_path);
-  
+
   /// \brief  Functions for trilinear interpolation of wind field at aircraft position.
-  
+
   /// \brief  Linear interpolation
   /// \param[in]  position y-coordinate of the target point.
   ///             values Pointer to an array of size 2 containing the wind values
   ///                    of the two points to interpolate from (12 and 13).
-  ///             points Pointer to an array of size 2 containing the y-coordinate 
+  ///             points Pointer to an array of size 2 containing the y-coordinate
   ///                    of the two points to interpolate from.
   ignition::math::Vector3d LinearInterpolation(double position, ignition::math::Vector3d * values, double* points) const;
-  
+
   /// \brief  Bilinear interpolation
-  /// \param[in]  position Pointer to an array of size 2 containing the x- and 
+  /// \param[in]  position Pointer to an array of size 2 containing the x- and
   ///                      y-coordinates of the target point.
-  ///             values Pointer to an array of size 4 containing the wind values 
+  ///             values Pointer to an array of size 4 containing the wind values
   ///                    of the four points to interpolate from (8, 9, 10 and 11).
   ///             points Pointer to an array of size 14 containing the z-coordinate
-  ///                    of the eight points to interpolate from, the x-coordinate 
-  ///                    of the four intermediate points (8, 9, 10 and 11), and the 
+  ///                    of the eight points to interpolate from, the x-coordinate
+  ///                    of the four intermediate points (8, 9, 10 and 11), and the
   ///                    y-coordinate of the last two intermediate points (12 and 13).
   ignition::math::Vector3d BilinearInterpolation(double* position, ignition::math::Vector3d * values, double* points) const;
-  
+
   /// \brief  Trilinear interpolation
   /// \param[in]  link_position Vector3 containing the x, y and z-coordinates
   ///                           of the target point.
-  ///             values Pointer to an array of size 8 containing the wind values of the 
+  ///             values Pointer to an array of size 8 containing the wind values of the
   ///                    eight points to interpolate from (0, 1, 2, 3, 4, 5, 6 and 7).
-  ///             points Pointer to an array of size 14 containing the z-coordinate          
-  ///                    of the eight points to interpolate from, the x-coordinate 
-  ///                    of the four intermediate points (8, 9, 10 and 11), and the 
+  ///             points Pointer to an array of size 14 containing the z-coordinate
+  ///                    of the eight points to interpolate from, the x-coordinate
+  ///                    of the four intermediate points (8, 9, 10 and 11), and the
   ///                    y-coordinate of the last two intermediate points (12 and 13).
   ignition::math::Vector3d TrilinearInterpolation(ignition::math::Vector3d link_position, ignition::math::Vector3d * values, double* points) const;
-  
+
   gazebo::transport::PublisherPtr wind_force_pub_;
   gazebo::transport::PublisherPtr wind_speed_pub_;
 

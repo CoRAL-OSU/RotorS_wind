@@ -29,7 +29,7 @@
 namespace gazebo {
 
 GazeboWindPlugin::~GazeboWindPlugin() {
-  
+
 }
 
 void GazeboWindPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
@@ -80,6 +80,9 @@ void GazeboWindPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   // Check if a custom static wind field should be used.
   getSdfParam<bool>(_sdf, "useCustomStaticWindField", use_custom_static_wind_field_,
                       use_custom_static_wind_field_);
+  getSdfParam<ignition::math::Matrix3d>(_sdf, "dragCoefficient", drag_coefficient_,
+                      drag_coefficient_);
+
   if (!use_custom_static_wind_field_) {
     gzdbg << "[gazebo_wind_plugin] Using user-defined constant wind field and gusts.\n";
     // Get the wind params from SDF.
@@ -97,6 +100,7 @@ void GazeboWindPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
                         wind_gust_force_variance_);
     getSdfParam<ignition::math::Vector3d >(_sdf, "windGustDirection", wind_gust_direction_,
                         wind_gust_direction_);
+
 
     wind_direction_.Normalize();
     wind_gust_direction_.Normalize();
@@ -135,7 +139,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
 
   // Get the current simulation time.
   common::Time now = world_->SimTime();
-  
+
   ignition::math::Vector3d wind_velocity(0.0, 0.0, 0.0);
 
   // Choose user-specified method for calculating wind velocity.
@@ -144,27 +148,42 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     double wind_strength = wind_force_mean_;
     ignition::math::Vector3d wind = wind_strength * wind_direction_;
     // Apply a force from the constant wind to the link.
-    link_->AddForceAtRelativePosition(wind, xyz_offset_);
+    //link_->AddForceAtRelativePosition(wind, xyz_offset_);
+
+    // Apply drag force to link.
+
 
     ignition::math::Vector3d wind_gust(0.0, 0.0, 0.0);
+    ignition::math::Vector3d wind_rand(0.0, 0.0, 0.0);
     // Calculate the wind gust force.
     if (now >= wind_gust_start_ && now < wind_gust_end_) {
       double wind_gust_strength = wind_gust_force_mean_;
       wind_gust = wind_gust_strength * wind_gust_direction_;
+      double gn = ignition::math::Rand::DblNormal(0,wind_gust[0]);
+      double ge = ignition::math::Rand::DblNormal(0,wind_gust[1]);
+      double gd = ignition::math::Rand::DblNormal(0,wind_gust[2]);
+      wind_rand = (gn, ge, gd);
       // Apply a force from the wind gust to the link.
-      link_->AddForceAtRelativePosition(wind_gust, xyz_offset_);
+      //link_->AddForceAtRelativePosition(wind_gust, xyz_offset_);
     }
+
+    // added by HB
+    wind_velocity = wind + wind_rand;
+    ignition::math::Vector3d rel_wind= link_->WorldLinearVel() - wind_velocity;
+    ignition::math::Pose3d pose = link_->WorldPose();
+    ignition::math::Vector3d rel_body_vel = pose.Rot().RotateVector(rel_wind);
+    ignition::math::Vector3d drag_force = - rel_wind.Length() * drag_coefficient_ * rel_wind; //0.1 is the DragCoefficient
+    // Apply drag force to link.
+    link_->AddRelativeForce(drag_force);
+
 
     wrench_stamped_msg_.mutable_header()->set_frame_id(frame_id_);
     wrench_stamped_msg_.mutable_header()->mutable_stamp()->set_sec(now.sec);
     wrench_stamped_msg_.mutable_header()->mutable_stamp()->set_nsec(now.nsec);
 
-    wrench_stamped_msg_.mutable_wrench()->mutable_force()->set_x(wind.X() +
-                                                                 wind_gust.X());
-    wrench_stamped_msg_.mutable_wrench()->mutable_force()->set_y(wind.Y() +
-                                                                 wind_gust.Y());
-    wrench_stamped_msg_.mutable_wrench()->mutable_force()->set_z(wind.Z() +
-                                                                 wind_gust.Z());
+    wrench_stamped_msg_.mutable_wrench()->mutable_force()->set_x(drag_force.X());
+    wrench_stamped_msg_.mutable_wrench()->mutable_force()->set_y(drag_force.Y());
+    wrench_stamped_msg_.mutable_wrench()->mutable_force()->set_z(drag_force.Z());
 
     // No torque due to wind, set x,y and z to 0.
     wrench_stamped_msg_.mutable_wrench()->mutable_torque()->set_x(0);
@@ -174,12 +193,12 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     wind_force_pub_->Publish(wrench_stamped_msg_);
 
     // Calculate the wind speed.
-    wind_velocity = wind_speed_mean_ * wind_direction_;
+    //wind_velocity = wind_speed_mean_ * wind_direction_;
   } else {
     // Get the current position of the aircraft in world coordinates.
     ignition::math::Vector3d link_position = link_->WorldPose().Pos();
 
-    // Calculate the x, y index of the grid points with x, y-coordinate 
+    // Calculate the x, y index of the grid points with x, y-coordinate
     // just smaller than or equal to aircraft x, y position.
     std::size_t x_inf = floor((link_position.X() - min_x_) / res_x_);
     std::size_t y_inf = floor((link_position.Y() - min_y_) / res_y_);
@@ -194,17 +213,17 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     }
 
     // Calculate the x, y index of the grid points with x, y-coordinate just
-    // greater than the aircraft x, y position. 
+    // greater than the aircraft x, y position.
     std::size_t x_sup = x_inf + 1u;
     std::size_t y_sup = y_inf + 1u;
 
-    // Save in an array the x, y index of each of the eight grid points 
+    // Save in an array the x, y index of each of the eight grid points
     // enclosing the aircraft.
     constexpr unsigned int n_vertices = 8;
     std::size_t idx_x[n_vertices] = {x_inf, x_inf, x_sup, x_sup, x_inf, x_inf, x_sup, x_sup};
     std::size_t idx_y[n_vertices] = {y_inf, y_inf, y_inf, y_inf, y_sup, y_sup, y_sup, y_sup};
 
-    // Find the vertical factor of the aircraft in each of the four surrounding 
+    // Find the vertical factor of the aircraft in each of the four surrounding
     // grid columns, and their minimal/maximal value.
     constexpr unsigned int n_columns = 4;
     float vertical_factors_columns[n_columns];
@@ -213,7 +232,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
         link_position.Z() - bottom_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_]) /
         (top_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_] - bottom_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_]);
     }
-    
+
     // Find maximal and minimal value amongst vertical factors.
     float vertical_factors_min = std::min(std::min(std::min(
       vertical_factors_columns[0], vertical_factors_columns[1]),
@@ -223,9 +242,9 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
       vertical_factors_columns[2]), vertical_factors_columns[3]);
 
     // Check if aircraft is out of wind field or not, and act accordingly.
-    if (x_inf >= 0u && y_inf >= 0u && vertical_factors_max >= 0u && 
+    if (x_inf >= 0u && y_inf >= 0u && vertical_factors_max >= 0u &&
         x_sup <= (n_x_ - 1u) && y_sup <= (n_y_ - 1u) && vertical_factors_min <= 1u) {
-      // Find indices in z-direction for each of the vertices. If link is not 
+      // Find indices in z-direction for each of the vertices. If link is not
       // within the range of one of the columns, set to lowest or highest two.
       std::size_t idx_z[n_vertices] = {0u, static_cast<int>(vertical_spacing_factors_.size()) - 1u,
                               0u, static_cast<int>(vertical_spacing_factors_.size()) - 1u,
@@ -241,7 +260,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
         } else {
           // Link z-position between two grid points in that column.
           for (std::size_t j = 0u; j < vertical_spacing_factors_.size() - 1u; ++j) {
-            if (vertical_spacing_factors_[j] <= vertical_factors_columns[i] && 
+            if (vertical_spacing_factors_[j] <= vertical_factors_columns[i] &&
                 vertical_spacing_factors_[j + 1u] > vertical_factors_columns[i]) {
               idx_z[2u * i] = j;
               idx_z[2u * i + 1u] = j + 1u;
@@ -259,7 +278,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
         wind_at_vertices[i].Z() = w_[idx_x[i] + idx_y[i] * n_x_ + idx_z[i] * n_x_ * n_y_];
       }
 
-      // Extract the relevant coordinate of every point needed for trilinear 
+      // Extract the relevant coordinate of every point needed for trilinear
       // interpolation (first z-direction, then x-direction, then y-direction).
       constexpr unsigned int n_points_interp_z = 8;
       constexpr unsigned int n_points_interp_x = 4;
@@ -284,8 +303,32 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
       // Set the wind velocity to the default constant value specified by user.
       wind_velocity = wind_speed_mean_ * wind_direction_;
     }
+
+    // He Bai TODO: Add drag force on the link based on the wind velocity
+    ignition::math::Vector3d rel_wind= link_->WorldLinearVel() - wind_velocity;
+    ignition::math::Pose3d pose = link_->WorldPose();
+    ignition::math::Vector3d rel_body_vel = pose.Rot().RotateVector(rel_wind);
+    ignition::math::Vector3d drag_force = - rel_wind.Length() * drag_coefficient_ * rel_wind; //0.1 is the DragCoefficient
+    // Apply drag force to link.
+    link_->AddRelativeForce(drag_force);
+
+    wrench_stamped_msg_.mutable_header()->set_frame_id(frame_id_);
+    wrench_stamped_msg_.mutable_header()->mutable_stamp()->set_sec(now.sec);
+    wrench_stamped_msg_.mutable_header()->mutable_stamp()->set_nsec(now.nsec);
+
+    wrench_stamped_msg_.mutable_wrench()->mutable_force()->set_x(drag_force.X());
+    wrench_stamped_msg_.mutable_wrench()->mutable_force()->set_y(drag_force.Y());
+    wrench_stamped_msg_.mutable_wrench()->mutable_force()->set_z(drag_force.Z());
+
+    // No torque due to wind, set x,y and z to 0.
+    wrench_stamped_msg_.mutable_wrench()->mutable_torque()->set_x(0);
+    wrench_stamped_msg_.mutable_wrench()->mutable_torque()->set_y(0);
+    wrench_stamped_msg_.mutable_wrench()->mutable_torque()->set_z(0);
+
+    wind_force_pub_->Publish(wrench_stamped_msg_);
+
   }
-  
+
   wind_speed_msg_.mutable_header()->set_frame_id(frame_id_);
   wind_speed_msg_.mutable_header()->mutable_stamp()->set_sec(now.sec);
   wind_speed_msg_.mutable_header()->mutable_stamp()->set_nsec(now.nsec);
@@ -295,6 +338,8 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
   wind_speed_msg_.mutable_velocity()->set_z(wind_velocity.Z());
 
   wind_speed_pub_->Publish(wind_speed_msg_);
+
+
 }
 
 void GazeboWindPlugin::CreatePubsAndSubs() {
@@ -389,7 +434,7 @@ void GazeboWindPlugin::ReadCustomWindField(std::string& custom_wind_field_path) 
           if (fin.peek() == '\n') break;
         }
       } else {
-        // If invalid data name, read the rest of the invalid line, 
+        // If invalid data name, read the rest of the invalid line,
         // publish a message and ignore data on next line. Then resume reading.
         std::string restOfLine;
         getline(fin, restOfLine);
