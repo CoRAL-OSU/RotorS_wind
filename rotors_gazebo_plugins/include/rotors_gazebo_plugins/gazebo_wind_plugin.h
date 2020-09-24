@@ -144,6 +144,8 @@ class GazeboWindPlugin : public ModelPlugin {
 
   /// \brief    Variables for custom wind field generation.
   bool use_custom_static_wind_field_;
+  std::string custom_wind_field_path_;
+
   float min_x_;
   float min_y_;
   int n_x_;

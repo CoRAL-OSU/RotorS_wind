@@ -23,6 +23,7 @@
 
 #include <fstream>
 #include <math.h>
+#include <string>
 
 #include "ConnectGazeboToRosTopic.pb.h"
 
@@ -109,10 +110,11 @@ void GazeboWindPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   } else {
     gzdbg << "[gazebo_wind_plugin] Using custom wind field from text file.\n";
     // Get the wind field text file path, read it and save data.
-    std::string custom_wind_field_path;
-    getSdfParam<std::string>(_sdf, "customWindFieldPath", custom_wind_field_path,
-                        custom_wind_field_path);
-    ReadCustomWindField(custom_wind_field_path);
+
+    // HB: commented out as we will be doing this dynamically
+    getSdfParam<std::string>(_sdf, "customWindFieldPath", custom_wind_field_path_,
+                        custom_wind_field_path_);
+    //ReadCustomWindField(custom_wind_field_path);
   }
 
   link_ = model_->GetLink(link_name_);
@@ -172,7 +174,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     ignition::math::Vector3d rel_wind= link_->WorldLinearVel() - wind_velocity;
     ignition::math::Pose3d pose = link_->WorldPose();
     ignition::math::Vector3d rel_body_vel = pose.Rot().RotateVector(rel_wind);
-    ignition::math::Vector3d drag_force = - rel_wind.Length() * drag_coefficient_ * rel_wind; //0.1 is the DragCoefficient
+    ignition::math::Vector3d drag_force = - rel_wind.Length() * drag_coefficient_ * rel_wind; 
     // Apply drag force to link.
     link_->AddRelativeForce(drag_force);
 
@@ -195,6 +197,11 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     // Calculate the wind speed.
     //wind_velocity = wind_speed_mean_ * wind_direction_;
   } else {
+    // HB: here we can read in different files given simulation times
+    float simT = world_->SimTime().Float();
+    std::string custom_wind_field_path = std::to_string((int)simT) + custom_wind_field_path_;
+    ReadCustomWindField(custom_wind_field_path);
+
     // Get the current position of the aircraft in world coordinates.
     ignition::math::Vector3d link_position = link_->WorldPose().Pos();
 
