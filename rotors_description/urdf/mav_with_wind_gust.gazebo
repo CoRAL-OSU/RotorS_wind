@@ -27,8 +27,10 @@
   <xacro:wind_plugin_macro
     namespace="${namespace}"
     xyz_offset="0 0 0"
+    wind_force_pub_topic = "myWindForce"
+    wind_speed_pub_topic = "myWindSpeed"
     wind_direction="0 1 0"
-    wind_force_mean="0"
+    wind_force_mean="5"
     wind_gust_direction="1 1 0.1"
     wind_gust_duration="10"
     wind_gust_start="10"

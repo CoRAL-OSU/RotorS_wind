@@ -507,7 +507,7 @@
 
   <!-- Macro to add the wind plugin. -->
   <xacro:macro name="wind_plugin_macro"
-    params="namespace xyz_offset wind_direction wind_force_mean
+    params="namespace xyz_offset wind_force_pub_topic wind_speed_pub_topic wind_direction wind_force_mean
       wind_gust_direction wind_gust_duration wind_gust_start
       wind_gust_force_mean drag_coefficient use_custom_static_wind_field custom_wind_field_path">
     <gazebo>
@@ -516,6 +516,8 @@
         <linkName>${namespace}/base_link</linkName>
         <robotNamespace>${namespace}</robotNamespace>
         <xyzOffset>${xyz_offset}</xyzOffset> <!-- [m] [m] [m] -->
+        <windForcePubTopic>${wind_force_pub_topic}</windForcePubTopic>
+        <windSpeedPubTopic>${wind_speed_pub_topic}</windSpeedPubTopic>
         <windDirection>${wind_direction}</windDirection>
         <windForceMean>${wind_force_mean}</windForceMean> <!-- [N] -->
         <windGustDirection>${wind_gust_direction}</windGustDirection>
