@@ -37,6 +37,6 @@
     wind_gust_force_mean="0"
     drag_coefficient="0.05 0 0 0 0.05 0 0 0 0.01"
     use_custom_static_wind_field="true"
-    custom_wind_field_path="$(find rotors_gazebo)/hemicyl/wind_field_hemicyl.txt">
+    custom_wind_field_path="$(find rotors_gazebo)/models/1wind.txt">
   </xacro:wind_plugin_macro>
 </robot>
