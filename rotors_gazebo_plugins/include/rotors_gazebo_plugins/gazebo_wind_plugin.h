@@ -61,6 +61,9 @@ static constexpr bool kDefaultUseCustomStaticWindField = false;
 
 static const ignition::math::Matrix3d kDefaultDragCoefficient = ignition::math::Matrix3d (0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.01);
 
+static constexpr double kDefaultWindUpdateInterval = 1.0;
+static constexpr double kDefaultPrevWindLoadTime = 0.0;
+static constexpr bool kDefaultWindProfileLoaded = false;
 
 
 /// \brief    This gazebo plugin simulates wind acting on a model.
@@ -83,6 +86,9 @@ class GazeboWindPlugin : public ModelPlugin {
         wind_gust_direction_(kDefaultWindGustDirection),
         use_custom_static_wind_field_(kDefaultUseCustomStaticWindField),
         drag_coefficient_(kDefaultDragCoefficient),
+        wind_update_interval_(kDefaultWindUpdateInterval),
+        prev_wind_load_time_(kDefaultPrevWindLoadTime),
+        wind_profile_loaded_(kDefaultWindProfileLoaded),
         frame_id_(kDefaultFrameId),
         link_name_(kDefaultLinkName),
         node_handle_(nullptr),
@@ -145,6 +151,10 @@ class GazeboWindPlugin : public ModelPlugin {
   /// \brief    Variables for custom wind field generation.
   bool use_custom_static_wind_field_;
   std::string custom_wind_field_path_;
+
+  double wind_update_interval_;
+  double prev_wind_load_time_;
+  bool wind_profile_loaded_;
 
   float min_x_;
   float min_y_;

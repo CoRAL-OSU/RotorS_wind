@@ -24,6 +24,7 @@
 #include <fstream>
 #include <math.h>
 #include <ros/ros.h>
+#include <string>
 
 #include "ConnectGazeboToRosTopic.pb.h"
 
@@ -111,10 +112,10 @@ void GazeboWindPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
     ROS_INFO("LOADING FILE\n");
     gzdbg << "[gazebo_wind_plugin] Using custom wind field from text file.\n";
     // Get the wind field text file path, read it and save data.
-    std::string custom_wind_field_path;
-    getSdfParam<std::string>(_sdf, "customWindFieldPath", custom_wind_field_path,
-                        custom_wind_field_path);
-    ReadCustomWindField(custom_wind_field_path);
+    //std::string custom_wind_field_path;
+    getSdfParam<std::string>(_sdf, "customWindFieldPath", custom_wind_field_path_,
+                        custom_wind_field_path_);
+    //ReadCustomWindField(custom_wind_field_path);
   }
 
   link_ = model_->GetLink(link_name_);
@@ -199,6 +200,19 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     // Calculate the wind speed.
     //wind_velocity = wind_speed_mean_ * wind_direction_;
   } else {
+    // HB: here we can read in different files given simulation times
+    float simT = world_->SimTime().Float();
+
+    if(!wind_profile_loaded_ || simT - prev_wind_load_time_ >= wind_update_interval_)
+    {
+      std::string windfile= "wind.txt";
+      std::string custom_wind_field_path = custom_wind_field_path_ + std::to_string(((int)simT) % 6 + 1) + windfile; //since we only find 6 files
+      ReadCustomWindField(custom_wind_field_path);
+      ROS_INFO_STREAM(custom_wind_field_path);
+      prev_wind_load_time_ = simT;
+      wind_profile_loaded_ = true;
+    }
+
     // Get the current position of the aircraft in world coordinates.
 
     ignition::math::Vector3d link_position = link_->WorldPose().Pos();
@@ -309,7 +323,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
       wind_velocity = wind_speed_mean_ * wind_direction_;
     }
 
-    // He Bai TODO: Add drag force on the link based on the wind velocity
+    // He Bai: Add drag force on the link based on the wind velocity
     ignition::math::Vector3d rel_wind= link_->WorldLinearVel() - wind_velocity;
     ignition::math::Pose3d pose = link_->WorldPose();
     ignition::math::Vector3d rel_body_vel = pose.Rot().RotateVector(rel_wind);
