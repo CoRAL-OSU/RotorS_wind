@@ -152,14 +152,19 @@
 	      <xyzOffset>0 0 0</xyzOffset>
 	      <frameId>base_link</frameId>
 	      <linkName>base_link</linkName>
-	      <windDirection>1 1 -0.3</windDirection>
-	      <windForceMean>0</windForceMean>
+	      <windDirection>0 1 0 </windDirection>
+	      <windForceMean>5</windForceMean>
 	      <windForceVariance>0.0</windForceVariance>
 	      <windGustDirection>$(arg wind_direction_x) $(arg wind_direction_y) $(arg wind_direction_z)</windGustDirection>
 	      <windGustStart>$(arg wind_start)</windGustStart>
 	      <windGustDuration>$(arg wind_duration)</windGustDuration>
 	      <windGustForceMean>$(arg wind_force)</windGustForceMean>
 	      <windGustForceVariance>0</windGustForceVariance>
+        <dragCoefficient>0.05 0 0 0 0.05 0 0 0 0.01</dragCoefficient>
+        <useCustomStaticWindField>true</useCustomStaticWindField>
+        <customWindFieldPath>$(find rotors_gazebo)/hemicyl/</customWindFieldPath>
+        <windForcePubTopic>myWindForce</windForcePubTopic>
+        <windSpeedPubTopic>myWindSpeed</windSpeedPubTopic>
 	    </plugin>
 	</gazebo>
         </xacro:if>
@@ -218,4 +223,3 @@
      </xacro:if>
 
  </robot>
-
