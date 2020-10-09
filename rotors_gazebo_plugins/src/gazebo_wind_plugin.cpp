@@ -81,6 +81,7 @@ void GazeboWindPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
                       wind_direction_);
   getSdfParam<ignition::math::Matrix3d>(_sdf, "dragCoefficient", drag_coefficient_,
                                           drag_coefficient_);
+  getSdfParam<double>(_sdf,"wind_update_interval",wind_update_interval_,wind_update_interval_);
   // Check if a custom static wind field should be used.
   getSdfParam<bool>(_sdf, "useCustomStaticWindField", use_custom_static_wind_field_,
                       use_custom_static_wind_field_);
@@ -168,7 +169,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
       double gn = ignition::math::Rand::DblNormal(0,wind_gust[0]);
       double ge = ignition::math::Rand::DblNormal(0,wind_gust[1]);
       double gd = ignition::math::Rand::DblNormal(0,wind_gust[2]);
-      wind_rand = (gn, ge, gd);
+      wind_rand = (gn, ge, gd); //this is form gust
       //link_->AddForceAtRelativePosition(wind_gust, xyz_offset_);
     }
 
@@ -206,7 +207,19 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     if(!wind_profile_loaded_ || simT - prev_wind_load_time_ >= wind_update_interval_)
     {
       std::string windfile= "wind.txt";
-      std::string custom_wind_field_path = custom_wind_field_path_ + std::to_string(((int)simT) % 6 + 1) + windfile; //since we only find 6 files
+      int num_of_windfile = 30 ;
+      int fileT;
+
+      if (simT<= 1.0) {
+        fileT= 1;
+      }
+      else {
+        fileT= ((int)simT )/((int) wind_update_interval_); // file naming convebtion 1,2,3 where simT will be 1,5,10
+      }
+
+      //ROS_INFO_STREAM(fileT);
+      std::string custom_wind_field_path = custom_wind_field_path_ + std::to_string(((int)simT) % num_of_windfile + 1) + windfile; //since we only find 6 files
+      //std::string custom_wind_field_path = custom_wind_field_path_  + windfile;
       ReadCustomWindField(custom_wind_field_path);
       ROS_INFO_STREAM(custom_wind_field_path);
       prev_wind_load_time_ = simT;
@@ -219,6 +232,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
 
     // Calculate the x, y index of the grid points with x, y-coordinate
     // just smaller than or equal to aircraft x, y position.
+    //floor link_position.Z()= floor(link_position.Z()+100);
     std::size_t x_inf = floor((link_position.X() - min_x_) / res_x_);
     std::size_t y_inf = floor((link_position.Y() - min_y_) / res_y_);
 
@@ -248,7 +262,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     float vertical_factors_columns[n_columns];
     for (std::size_t i = 0u; i < n_columns; ++i) {
       vertical_factors_columns[i] = (
-        link_position.Z() - bottom_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_]) /
+        link_position.Z()+ 150 - bottom_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_]) /
         (top_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_] - bottom_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_]);
     }
 
@@ -410,11 +424,13 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     // Read the line with the variable name.
     while (fin >> data_name) {
       // Save data on following line into the correct variable.
-      if (data_name == "min_x:") {
-        fin >> min_x_;
-      } else if (data_name == "min_y:") {
-        fin >> min_y_;
-      } else if (data_name == "n_x:") {
+      //if (data_name == "min_x:") {
+        //fin >> min_x_;
+      //} else if (data_name == "min_y:") {
+      //  fin >> min_y_;}
+      min_x_ = -5.0;
+      min_y_ = -5.0;
+      if (data_name == "n_x:") {
         fin >> n_x_;
       } else if (data_name == "n_y:") {
         fin >> n_y_;

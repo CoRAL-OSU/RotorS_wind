@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
   <arg name="mav_name" default="firefly"/>
   <arg name="world_name" default="basic"/>
@@ -11,12 +12,15 @@
     <arg name="world_name" value="$(find rotors_gazebo)/worlds/$(arg world_name).world"/>
     <!-- <arg name="debug" value="true" /> -->
     <arg name="paused" value="true" />
-    <!-- <arg name="gui" value="false" /> -->
+    <!-- <arg name="gui" value="true" /> -->
   </include>
 
   <group ns="$(arg mav_name)">
     <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
       <arg name="mav_name" value="$(arg mav_name)" />
+      <arg name="x" value="2"/>
+       <arg name="y" value="0"/>
+       <arg name="z" value="1"/>
       <arg name="model" value="$(find rotors_description)/urdf/mav_with_wind_gust.gazebo" />
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />

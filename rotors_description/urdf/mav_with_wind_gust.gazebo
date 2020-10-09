@@ -30,13 +30,14 @@
     wind_force_pub_topic = "myWindForce"
     wind_speed_pub_topic = "myWindSpeed"
     wind_direction="0 1 0"
-    wind_force_mean="5"
-    wind_gust_direction="1 1 0.1"
+    wind_force_mean="0.1"
+    wind_gust_direction="1 1 0"
     wind_gust_duration="10"
     wind_gust_start="10"
-    wind_gust_force_mean="0"
-    drag_coefficient="0.05 0 0 0 0.05 0 0 0 0.01"
-    use_custom_static_wind_field="true"
+    wind_gust_force_mean="20"
+    drag_coefficient="0.1 0 0 0 0.1 0 0 0 0.01"
+    wind_update_interval="1.0"
+    use_custom_static_wind_field="false"
     custom_wind_field_path="$(find rotors_gazebo)/hemicyl/">
   </xacro:wind_plugin_macro>
 </robot>

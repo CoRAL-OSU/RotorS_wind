@@ -139,6 +139,7 @@ class GazeboWindPlugin : public ModelPlugin {
   double wind_gust_force_variance_;
   double wind_speed_mean_;
   double wind_speed_variance_;
+ 
 
   ignition::math::Vector3d xyz_offset_;
   ignition::math::Vector3d wind_direction_;
