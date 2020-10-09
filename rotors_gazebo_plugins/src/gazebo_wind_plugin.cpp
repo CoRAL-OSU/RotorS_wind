@@ -328,12 +328,12 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
           interpolation_points[i] = min_y_ + res_y_ * idx_y[4u * (i - n_points_interp_z - n_points_interp_x)];
         }
       }
-
       // Interpolate wind velocity at aircraft position.
       wind_velocity = TrilinearInterpolation(
         link_position, wind_at_vertices, interpolation_points);
     } else {
       // Set the wind velocity to the default constant value specified by user.
+      ROS_INFO_STREAM("running in default constant wind");
       wind_velocity = wind_speed_mean_ * wind_direction_;
     }
 
@@ -421,6 +421,12 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
   if (fin.is_open()) {
     std::string data_name;
     float data;
+    vertical_spacing_factors_.clear();
+    bottom_z_.clear();
+    top_z_.clear();
+    u_.clear();
+    v_.clear();
+    w_.clear();
     // Read the line with the variable name.
     while (fin >> data_name) {
       // Save data on following line into the correct variable.
