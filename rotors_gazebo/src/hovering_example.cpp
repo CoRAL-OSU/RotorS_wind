@@ -28,6 +28,9 @@
 #include <std_srvs/Empty.h>
 #include <trajectory_msgs/MultiDOFJointTrajectory.h>
 
+
+
+
 int main(int argc, char** argv){
   ros::init(argc, argv, "hovering_example");
   ros::NodeHandle nh;
@@ -61,7 +64,7 @@ int main(int argc, char** argv){
 
   trajectory_msgs::MultiDOFJointTrajectory trajectory_msg;
   trajectory_msg.header.stamp = ros::Time::now();
-  Eigen::Vector3d desired_position(0.0, 0.0, 9.0);
+  Eigen::Vector3d desired_position(0.0, 0.0, 4.0);
   double desired_yaw = 0.0;
   mav_msgs::msgMultiDofJointTrajectoryFromPositionYaw(desired_position,
       desired_yaw, &trajectory_msg);
@@ -73,5 +76,5 @@ int main(int argc, char** argv){
            desired_position.z());
   trajectory_pub.publish(trajectory_msg);
 
-  ros::spin();
+
 }

@@ -5,6 +5,8 @@
   <arg name="enable_logging" default="false"/>
   <arg name="enable_ground_truth" default="true"/>
   <arg name="log_file" default="$(arg mav_name)"/>
+  <arg name="record_pos" default="true"/>
+
 
   <env name="GAZEBO_MODEL_PATH" value="${GAZEBO_MODEL_PATH}:$(find rotors_gazebo)/models"/>
   <env name="GAZEBO_RESOURCE_PATH" value="${GAZEBO_RESOURCE_PATH}:$(find rotors_gazebo)/models"/>
@@ -18,9 +20,9 @@
   <group ns="$(arg mav_name)">
     <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
       <arg name="mav_name" value="$(arg mav_name)" />
-      <arg name="x" value="2"/>
+      <arg name="x" value="0"/>
        <arg name="y" value="0"/>
-       <arg name="z" value="1"/>
+       <arg name="z" value="0"/>
       <arg name="model" value="$(find rotors_description)/urdf/mav_with_wind_gust.gazebo" />
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
@@ -35,4 +37,6 @@
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
   </group>
+    <node pkg="rosbag"  type="record" name="position" args="-o $(find rotors_gazebo)/position.bag /$(arg mav_name)/odometry_sensor1/position" if="$(arg record_pos)" />
+
 </launch>

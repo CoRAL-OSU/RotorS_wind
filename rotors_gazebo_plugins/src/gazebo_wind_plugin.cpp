@@ -207,7 +207,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     if(!wind_profile_loaded_ || simT - prev_wind_load_time_ >= wind_update_interval_)
     {
       std::string windfile= "wind.txt";
-      int num_of_windfile = 30 ;
+      int num_of_windfile = 1800 ;
       int fileT;
 
       if (simT<= 1.0) {
@@ -262,7 +262,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     float vertical_factors_columns[n_columns];
     for (std::size_t i = 0u; i < n_columns; ++i) {
       vertical_factors_columns[i] = (
-        link_position.Z()+ 150 - bottom_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_]) /
+        link_position.Z()+ 100 - bottom_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_]) /
         (top_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_] - bottom_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_]);
     }
 
