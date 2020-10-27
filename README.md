@@ -1,7 +1,9 @@
-RotorS
+RotorS_wind
 ===============
 
-RotorS is a MAV gazebo simulator.
+RotorS_wind is a Quadrotor simulation framework based on Gazebo open source simulator and Robot Operating System build on top of a open source Quadrotor Simulator framework RotorS simulator.RotorS_wind utilizes the existing wind plugin for RotorS and extended to incorporate body drag in rotor dynamics and time-varying wind field. It also provide data recording and storing of multirotor's states(position and velocity data). 
+
+Description of RotorS:
 It provides some multirotor models such as the [AscTec Hummingbird](http://www.asctec.de/en/uav-uas-drone-products/asctec-hummingbird/), the [AscTec Pelican](http://www.asctec.de/en/uav-uas-drone-products/asctec-pelican/), or the [AscTec Firefly](http://www.asctec.de/en/uav-uas-drone-products/asctec-firefly/), but the simulator is not limited for the use with these multicopters.
 
 There are simulated sensors coming with the simulator such as an IMU, a generic odometry sensor, and the [VI-Sensor](http://wiki.ros.org/vi_sensor), which can be mounted on the multirotor.
@@ -32,13 +34,13 @@ url="http://dx.doi.org/10.1007/978-3-319-26054-9_23"
 Installation Instructions
 -------------------------
 
- 1. Install and initialize ROS indigo desktop full, additional ROS packages, catkin-tools, and wstool:
+ 1. Install and initialize ROS melodic desktop full, additional ROS packages, catkin-tools, and wstool:
 
  ```
  $ sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu `lsb_release -sc` main" > /etc/apt/sources.list.d/ros-latest.list'
  $ wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
  $ sudo apt-get update
- $ sudo apt-get install ros-indigo-desktop-full ros-indigo-joy ros-indigo-octomap-ros python-wstool python-catkin-tools
+ $ sudo apt install ros-melodic-desktop-full ros-melodic-joy ros-melodic-octomap-ros python-wstool python-catkin-tools
  $ sudo rosdep init
  $ rosdep update
  $ source /opt/ros/indigo/setup.bash
@@ -56,7 +58,7 @@ Installation Instructions
 
  ```
  $ cd ~/catkin_ws/src
- $ git clone git@github.com:ethz-asl/rotors_simulator.git
+ $ git clone git@github.com:CoRAL-OSU/RotorS_wind.git 
  $ git clone git@github.com:ethz-asl/mav_comm.git
  ```
   > **Note** if you want to use `wstool` you can replace the above commands with
