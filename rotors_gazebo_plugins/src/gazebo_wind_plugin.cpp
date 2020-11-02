@@ -5,6 +5,8 @@
  * Copyright 2015 Janosch Nikolic, ASL, ETH Zurich, Switzerland
  * Copyright 2015 Markus Achtelik, ASL, ETH Zurich, Switzerland
  * Copyright 2016 Geoffrey Hunter <gbmhunter@gmail.com>
+ * Copyright 2020 He Bai, CoRal, OSU, USA
+ * Copyright 2020 Asma Tabassum , CoRal,OSU, USA
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,7 +83,10 @@ void GazeboWindPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
                       wind_direction_);
   getSdfParam<ignition::math::Matrix3d>(_sdf, "dragCoefficient", drag_coefficient_,
                                           drag_coefficient_);
-  getSdfParam<double>(_sdf,"wind_update_interval",wind_update_interval_,wind_update_interval_);
+  getSdfParam<double>(_sdf,"windUpdateInterval",wind_update_interval_,wind_update_interval_);
+
+  getSdfParam<double>(_sdf,"dynamicFileNumber",dynamic_file_number_,dynamic_file_number_);
+  getSdfParam<double>(_sdf,"virtualHeight",virtual_height_,virtual_height_);
   // Check if a custom static wind field should be used.
   getSdfParam<bool>(_sdf, "useCustomStaticWindField", use_custom_static_wind_field_,
                       use_custom_static_wind_field_);
@@ -218,7 +223,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
       }
 
       //ROS_INFO_STREAM(fileT);
-      std::string custom_wind_field_path = custom_wind_field_path_ + std::to_string(((int)simT) % num_of_windfile + 1) + windfile; //since we only find 6 files
+      std::string custom_wind_field_path = custom_wind_field_path_ + std::to_string(((int)simT) % int(dynamic_file_number_) + 1) + windfile; //since we only find 6 files
       //std::string custom_wind_field_path = custom_wind_field_path_  + windfile;
       ReadCustomWindField(custom_wind_field_path);
       ROS_INFO_STREAM(custom_wind_field_path);
@@ -262,7 +267,7 @@ void GazeboWindPlugin::OnUpdate(const common::UpdateInfo& _info) {
     float vertical_factors_columns[n_columns];
     for (std::size_t i = 0u; i < n_columns; ++i) {
       vertical_factors_columns[i] = (
-        link_position.Z()+ 100 - bottom_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_]) /
+        link_position.Z()+ virtual_height_ - bottom_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_]) /
         (top_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_] - bottom_z_[idx_x[2u * i] + idx_y[2u * i] * n_x_]);
     }
 

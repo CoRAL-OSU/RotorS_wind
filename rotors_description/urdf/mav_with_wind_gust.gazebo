@@ -35,8 +35,10 @@
     wind_gust_duration="10"
     wind_gust_start="10"
     wind_gust_force_mean="20"
-    drag_coefficient="0.08 0 0 0 0.08 0 0 0 0.01"
+    drag_coefficient="0.05 0 0 0 0.05 0 0 0 0.01"
     wind_update_interval="1.0"
+    dynamic_file_number="1800"
+    virtual_height="0"    
     use_custom_static_wind_field="true"
     custom_wind_field_path="$(find rotors_gazebo)/hemicyl/">
   </xacro:wind_plugin_macro>

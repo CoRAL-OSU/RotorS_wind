@@ -5,7 +5,11 @@
   <arg name="enable_logging" default="false"/>
   <arg name="enable_ground_truth" default="true"/>
   <arg name="log_file" default="$(arg mav_name)"/>
-  <arg name="record_pos" default="true"/>
+  <arg name="enable_wind_plugin" default="true"/>
+  <arg name="csvFilesStoring" default="true"/>
+  <arg name="csvFilesStoringTime" default="40.0"/> <!-- seconds -->
+  <arg name="user_account" default="tabassum"/> <!-- account name of your pc -->
+  <arg name="record_pos" default="true"/><!--record the data into rosbag-->
 
 
   <env name="GAZEBO_MODEL_PATH" value="${GAZEBO_MODEL_PATH}:$(find rotors_gazebo)/models"/>
@@ -38,5 +42,8 @@
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
   </group>
     <node pkg="rosbag"  type="record" name="position" args="-o $(find rotors_gazebo)/position.bag /$(arg mav_name)/odometry_sensor1/position" if="$(arg record_pos)" />
+    <node pkg="rosbag"  type="record" name="pos" args="-o $(find rotors_gazebo)/pos.bag /$(arg mav_name)/odometry_sensor1/pose" if="$(arg record_pos)" />
+    <node pkg="rosbag"  type="record" name="windvelocity" args="-o $(find rotors_gazebo)/wind_velcoity.bag /$(arg mav_name)/myWindSpeed" if="$(arg record_pos)" />
+    <node pkg="rosbag"  type="record" name="angular_vel" args="-o $(find rotors_gazebo)/angular_vel.bag /$(arg mav_name)/motor_speed" if="$(arg record_pos)" />
 
 </launch>
