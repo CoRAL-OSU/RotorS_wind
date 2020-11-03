@@ -24,8 +24,14 @@
 #include <mav_msgs/conversions.h>
 #include <mav_msgs/eigen_mav_msgs.h>
 
+
+#include <string>
+#include <vector>
+#include <ros/time.h>
 #include "rotors_control/common.h"
 #include "rotors_control/parameters.h"
+
+#include <gazebo_msgs/GetWorldProperties.h>
 
 namespace rotors_control {
 
@@ -60,18 +66,40 @@ class LeePositionController {
   ~LeePositionController();
   void InitializeParameters();
   void CalculateRotorVelocities(Eigen::VectorXd* rotor_velocities) const;
+  void SetLaunchFileParameters();
 
   void SetOdometry(const EigenOdometry& odometry);
   void SetTrajectoryPoint(
-    const mav_msgs::EigenTrajectoryPoint& command_trajectory);
+  const mav_msgs::EigenTrajectoryPoint& command_trajectory);
+
+ //Launch file parameters
+    std::string user_;
+    double dataStoringTime_;
+    bool dataStoring_active_;
+
 
   LeePositionControllerParameters controller_parameters_;
   VehicleParameters vehicle_parameters_;
+
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
  private:
   bool initialized_params_;
   bool controller_active_;
+//Wall clock time offset variable
+  double wallSecsOffset_;
+
+    
+ //Sting vectors used to stare data
+ std::vector<std::string> listDronePosition_;
+ //Gazebo Message for attitude and position
+    gazebo_msgs::GetWorldProperties my_messagePosition_;
+    ros::NodeHandle clientHandlePosition_;
+    ros::ServiceClient clientPosition_;
+
+    ros::NodeHandle clientHandleAttitude_;
+    ros::ServiceClient clientAttitude_;
+    gazebo_msgs::GetWorldProperties my_messageAttitude_;
 
   Eigen::Vector3d normalized_attitude_gain_;
   Eigen::Vector3d normalized_angular_rate_gain_;
@@ -79,6 +107,13 @@ class LeePositionController {
 
   mav_msgs::EigenTrajectoryPoint command_trajectory_;
   EigenOdometry odometry_;
+
+ ros::NodeHandle n3_;
+ ros::Timer timer1_;
+ ros::Timer timer2_;
+ ros::Timer timer3_;
+ //Callback functions to save data
+  void CallbackSaveData(const ros::TimerEvent& event);
 
   void ComputeDesiredAngularAcc(const Eigen::Vector3d& acceleration,
                                 Eigen::Vector3d* angular_acceleration) const;

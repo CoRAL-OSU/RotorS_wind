@@ -20,15 +20,36 @@
 
 #include "rotors_control/lee_position_controller.h"
 
+
+#include <math.h>
+#include <time.h>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <iterator>
+
+#include <ros/ros.h>
+#include <chrono>
+#include <inttypes.h>
+
+#include <nav_msgs/Odometry.h>
+#include <ros/console.h>
+
 namespace rotors_control {
 
 LeePositionController::LeePositionController()
     : initialized_params_(false),
-      controller_active_(false) {
+      dataStoring_active_(false),
+      controller_active_(false),
+      dataStoringTime_(0),
+      wallSecsOffset_(0)
+       {
   InitializeParameters();
 }
-
+//Destructor; function ends
 LeePositionController::~LeePositionController() {}
+
 
 void LeePositionController::InitializeParameters() {
   calculateAllocationMatrix(vehicle_parameters_.rotor_configuration_, &(controller_parameters_.allocation_matrix_));
@@ -50,6 +71,75 @@ void LeePositionController::InitializeParameters() {
       * (controller_parameters_.allocation_matrix_
       * controller_parameters_.allocation_matrix_.transpose()).inverse() * I;
   initialized_params_ = true;
+}
+
+
+//The callback saves data come from simulation into csv files
+void LeePositionController::CallbackSaveData(const ros::TimerEvent& event){
+
+      if(!dataStoring_active_){
+         return;
+      }
+
+      clientPosition_.call(my_messagePosition_);
+
+
+
+      ros::WallTime beginWall = ros::WallTime::now();
+      double wallSecs = beginWall.toSec() - wallSecsOffset_;
+
+      ros::Time begin = ros::Time::now();
+      double secs = begin.toSec();
+
+      //contsract an ofstream object with filename
+      std::ofstream fileMavPositition;
+
+      //ROS_INFO("CallbackSavaData function is working. Time: %f seconds, %f nanoseconds", odometry_.timeStampSec, odometry_.timeStampNsec);
+      //open the files
+
+      fileMavPositition.open("/home/"+ user_ + "/Mavpositiondata.csv", std::ios_base::app);
+
+
+      //Saving the drone position from odometry_ , Todo HOW TO ADD STATE TRAJECTORY
+      std::stringstream tempDronePosition;
+      tempDronePosition << odometry_.position.x() << "," << odometry_.position.y() << "," << odometry_.position.z() << ","
+          << my_messagePosition_.response.sim_time << "," << wallSecs << "," << secs << "\n";
+
+      listDronePosition_.push_back(tempDronePosition.str());
+
+
+      // Saving the drone position along axes
+      for (unsigned n=0; n < listDronePosition_.size(); ++n) {
+        fileMavPositition << listDronePosition_.at( n );
+          }
+      fileMavPositition.close();
+      
+      // To have a one shot storing
+      dataStoring_active_ = false;
+  }
+
+
+      // Reading parameters come frame launch file
+      void LeePositionController::SetLaunchFileParameters(){
+
+      	// The boolean variable is used to inactive the logging if it is not useful
+      	if(dataStoring_active_){
+
+      		// Time after which the data storing function is turned on
+      		timer3_ = n3_.createTimer(ros::Duration(dataStoringTime_), &LeePositionController::CallbackSaveData, this, false, true);
+
+      		// Cleaning the string vector contents
+      	  listDronePosition_.clear();
+
+
+      		// The client needed to get information about the Gazebo simulation environment both the attitude and position errors
+      		clientAttitude_ = clientHandleAttitude_.serviceClient<gazebo_msgs::GetWorldProperties>("/gazebo/get_world_properties");
+      		clientPosition_ = clientHandlePosition_.serviceClient<gazebo_msgs::GetWorldProperties>("/gazebo/get_world_properties");
+
+      		ros::WallTime beginWallOffset = ros::WallTime::now();
+      		wallSecsOffset_ = beginWallOffset.toSec();
+
+      	}
 }
 
 void LeePositionController::CalculateRotorVelocities(Eigen::VectorXd* rotor_velocities) const {

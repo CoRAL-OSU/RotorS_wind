@@ -20,6 +20,7 @@
 
 #include <ros/ros.h>
 #include <mav_msgs/default_topics.h>
+#include <ros/console.h>
 
 #include "lee_position_controller_node.h"
 
@@ -32,14 +33,17 @@ LeePositionControllerNode::LeePositionControllerNode() {
 
   ros::NodeHandle nh;
 
+  //To get the trajectory to follow
   cmd_pose_sub_ = nh.subscribe(
       mav_msgs::default_topics::COMMAND_POSE, 1,
       &LeePositionControllerNode::CommandPoseCallback, this);
+
 
   cmd_multi_dof_joint_trajectory_sub_ = nh.subscribe(
       mav_msgs::default_topics::COMMAND_TRAJECTORY, 1,
       &LeePositionControllerNode::MultiDofJointTrajectoryCallback, this);
 
+ //To get data coming from the the virtual odometry sensor
   odometry_sub_ = nh.subscribe(mav_msgs::default_topics::ODOMETRY, 1,
                                &LeePositionControllerNode::OdometryCallback, this);
 
@@ -50,6 +54,7 @@ LeePositionControllerNode::LeePositionControllerNode() {
                                   true, false);
 }
 
+//Destructor
 LeePositionControllerNode::~LeePositionControllerNode() { }
 
 void LeePositionControllerNode::InitializeParams() {
@@ -93,7 +98,40 @@ void LeePositionControllerNode::InitializeParams() {
                   lee_position_controller_.controller_parameters_.angular_rate_gain_.z(),
                   &lee_position_controller_.controller_parameters_.angular_rate_gain_.z());
   GetVehicleParameters(pnh, &lee_position_controller_.vehicle_parameters_);
-  lee_position_controller_.InitializeParameters();
+
+
+  //Reading the parameters come from the launch file
+
+  std::string user;
+  bool dataStoringActive;
+  double dataStoringTime;
+
+  // BUILD But not working
+
+  //if (pnh.getParam("user_account", user)){
+	 // ROS_INFO("Got param 'user_account': %s", user.c_str());
+	 //lee_position_controller_.user_ = user;
+//}
+  //else
+    //ROS_ERROR("Failed to get param 'user'");
+
+  //if (pnh.getParam("csvFilesStoring", dataStoringActive)){
+	  //ROS_INFO("Got param 'csvFilesStoring': %d", dataStoringActive);
+	  //lee_position_controller_.dataStoring_active_ = dataStoringActive;
+  //}
+  //else
+    //  ROS_ERROR("Failed to get param 'csvFilesStoring'");
+
+      //  if (pnh.getParam("csvFilesStoringTime", dataStoringTime)){
+      	//  ROS_INFO("Got param 'csvFilesStoringTime': %f", dataStoringTime);
+      	  //lee_position_controller_.dataStoringTime_ = dataStoringTime;
+        //}
+        //else
+          //  ROS_ERROR("Failed to get param 'csvFilesStoringTime'");
+
+lee_position_controller_.InitializeParameters();
+lee_position_controller_.SetLaunchFileParameters();
+
 }
 void LeePositionControllerNode::Publish() {
 }
@@ -196,7 +234,7 @@ void LeePositionControllerNode::OdometryCallback(const nav_msgs::OdometryConstPt
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "lee_position_controller_node");
-
+  ros::NodeHandle nh2;
   rotors_control::LeePositionControllerNode lee_position_controller_node;
 
   ros::spin();
